@@ -1,0 +1,6 @@
+className|Course
+property|NSString|courseID:course_id
+property|NSString|courseState:state
+property|NSArray|lessonArray
+property|BOOL|hadChanged
+property|TeachingSubject|teachingSubject
