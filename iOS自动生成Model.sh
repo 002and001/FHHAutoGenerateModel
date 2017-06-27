@@ -7,6 +7,8 @@ userName="hefanghui"
 createDate=`date +%Y/%m/%d`
 currentYear="`date +%Y`年"
 organization="topglobaledu"
+className=""
+configurationContent=""
 properties=""
 hFileDefineClassOCCode=""
 mFileImportClassOCCode=""
@@ -15,7 +17,26 @@ memoryStragegy=""
 mFileSetUnDefineKeyMethodOCCode=""
 mFileYYModelMethodOCCode=""
 mFileMJExtentionMethodOCCode=""
-className=""
+
+
+function setConfigurationContent() {
+	index=0
+	while read line
+	do		
+		if [[ $index -eq 0 ]]; then
+			lineContent="$line"
+			OLD_IFS="$IFS"
+			IFS="["
+			array=($lineContent)
+			IFS="$OLD_IFS"
+			configurationContent="${array[1]}"
+			configurationContent=${configurationContent/"]"/""}			
+			break
+		fi
+		index=$[$index+1]
+	done < "$inputFilePath"
+	# echo "configurationContent:$configurationContent"
+}
 
 function setCalssName() {
 	index=0
@@ -156,10 +177,11 @@ function setmFileImportClassOCCodeWithPropertyTypeIfNeeded() {
 	done < "$inputFilePath"
 }
 
-function setmFileSetUnDefineKeyMethod() {
+function setmFileMappingKeyMethodsIfNeeded() {
 	lineIndex=0
 	undefinekeyIndex=0
-	methodBody=""
+	systemUndefineKeyMethodBody=""
+	yyModelMappingKeyMethodBody=""
 	method=""
 
 	while read line || [[ -n ${line} ]]
@@ -175,6 +197,7 @@ function setmFileSetUnDefineKeyMethod() {
 			IFS="$OLD_IFS"
 			propertyType="${array2[0]}"		
 			setMemoryStragegyWithPropertyType "$propertyType"
+			# echo "memoryStragegy:$memoryStragegy"
 			property="${array2[1]}"
 			IFS=":"
 			propertyArray=($property)
@@ -184,28 +207,67 @@ function setmFileSetUnDefineKeyMethod() {
 			propertyName=${propertyName/"]"/""}
 			propertyNameKey=${propertyNameKey/"]"/""}
 			propertyArrayLength=${#propertyArray[@]}
+			# echo "propertyName:$propertyName"
 			if [[ $propertyArrayLength -gt 1 ]]; then
-				if [[ $undefinekeyIndex -eq 0 ]]; then
-					currentMappingOCCode="\tif ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t}"	
-					methodBody="$methodBody\n$currentMappingOCCode"					
-				else
-					currentMappingOCCode=" else if ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t}"
-					methodBody="$methodBody$currentMappingOCCode"
-				fi	
-							
+				setmFileSetUnDefineKeyMethodIfNeeded "$propertyNameKey" "$propertyName"
+				setmFileYYModelMappingMethodIfNeeded "$propertyNameKey" "$propertyName"
 				undefinekeyIndex=$[$undefinekeyIndex+1]
 			fi
 		fi
 		lineIndex=$[$lineIndex+1]	
 	done < "$inputFilePath"
-	mFileSetUnDefineKeyMethodOCCode="- (void)setValue:(id)value forUndefinedKey:(NSString *)key {	$methodBody\n}"
+	yyModelMappingKeyMethodBodyLength=${#yyModelMappingKeyMethodBody}
+	yyModelMappingKeyMethodBody=${yyModelMappingKeyMethodBody:0:yyModelMappingKeyMethodBodyLength-1}
+	# echo "systemUndefineKeyMethodBody:$systemUndefineKeyMethodBody"
+	# echo "yyModelMappingKeyMethodBody:$yyModelMappingKeyMethodBody"
+	
+	# echo "$yyModelMappingKeyMethodBodyLength"
+	
+	mFileSetUnDefineKeyMethodOCCode="- (void)setValue:(id)value forUndefinedKey:(NSString *)key {	$systemUndefineKeyMethodBody\n}"
+	mFileYYModelMethodOCCode="+ (NSDictionary *)modelCustomPropertyMapper {
+    return @{$yyModelMappingKeyMethodBody};\n}"
+    echo "mFileYYModelMethodOCCode:$mFileYYModelMethodOCCode"
 }
 
+function setmFileSetUnDefineKeyMethodIfNeeded() {		
+	if [[ "$configurationContent" =~ "System" ]]; then
+		propertyNameKey="$1"
+		propertyName="$2"
+		if [[ $systemUndefineKeyMethodBody = "" ]]; then
+			currentMappingOCCode="\tif ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t}"	
+			systemUndefineKeyMethodBody="$systemUndefineKeyMethodBody\n$currentMappingOCCode"					
+		else
+			currentMappingOCCode=" else if ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t}"
+			systemUndefineKeyMethodBody="$systemUndefineKeyMethodBody$currentMappingOCCode"
+		fi	
+	fi		
+}
+
+function setmFileYYModelMappingMethodIfNeeded() {	
+	if [[ "$configurationContent" =~ "YYModel" ]]; then
+		propertyNameKey="$1"
+		propertyName="$2"
+		# if [[ $yyModelMappingKeyMethodBody = "" ]]; then
+		# 	currentMappingOCCode="@{@\"$propertyName\" : @\"$propertyNameKey\","							
+		# else
+		# 	currentMappingOCCode="@\"$propertyName\" : @\"$propertyNameKey\""
+		# fi	
+		currentMappingOCCode="@\"$propertyName\" : @\"$propertyNameKey\","
+		if [[ "$yyModelMappingKeyMethodBody" = "" ]]; then
+			yyModelMappingKeyMethodBody="$currentMappingOCCode"	
+		else
+			yyModelMappingKeyMethodBody="$yyModelMappingKeyMethodBody\n\t\t\t $currentMappingOCCode"
+		fi
+	fi
+}
+
+setConfigurationContent ""
 setCalssName ""
 setmFileImportClassOCCodeWithPropertyTypeIfNeeded ""
 setProperties ""
 sethFileDefineClassOCCodeWithPropertyTypeIfNeeded ""
-setmFileSetUnDefineKeyMethod ""
+# setmFileSetUnDefineKeyMethod ""
+setmFileMappingKeyMethodsIfNeeded ""
 
 hFileHeaderAnnotation="//
 //  $className.h
@@ -253,6 +315,7 @@ $mFileImportClassOCCode\n
 }
 
 $mFileSetUnDefineKeyMethodOCCode
+$mFileYYModelMethodOCCode
 
 @end
 "

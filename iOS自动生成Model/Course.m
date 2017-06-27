@@ -34,6 +34,11 @@
 		_courseName = value;
 	}
 }
++ (NSDictionary *)modelCustomPropertyMapper {
+    return @{@"courseID" : @"course_id",
+			 @"courseState" : @"state",
+			 @"courseName" : @"course_name"};
+}
 
 @end
 
