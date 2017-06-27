@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 @class TeachingSubject;
+@class Grade;
 
 @interface Course : NSObject
 
@@ -16,6 +17,8 @@
 @property (nonatomic, strong) NSArray *lessonArray;
 @property (nonatomic, assign) BOOL hadChanged;
 @property (nonatomic, strong) TeachingSubject *teachingSubject;
+@property (nonatomic, strong) Grade *grade;
+@property (nonatomic, copy) NSString *courseName;
 
 - (instancetype)initWithDictionary:(NSDictionary *)dictionary;
 

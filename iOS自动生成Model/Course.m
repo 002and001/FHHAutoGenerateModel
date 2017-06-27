@@ -14,6 +14,7 @@
 
 #import "Course.h"
 #import "TeachingSubject.h"
+#import "Grade.h"
 
 @implementation Course
 
@@ -27,9 +28,10 @@
 - (void)setValue:(id)value forUndefinedKey:(NSString *)key {	
 	if ([key isEqualToString:@"course_id"]) {
 		_courseID = value;
-	}
-	if ([key isEqualToString:@"state"]) {
+	} else if ([key isEqualToString:@"state"]) {
 		_courseState = value;
+	} else if ([key isEqualToString:@"course_name"]) {
+		_courseName = value;
 	}
 }
 
