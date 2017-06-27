@@ -1,34 +1,61 @@
 #!/bin/bash
-inputFilePath="/Users/a002/Desktop/Shell/iOS自动生成Model脚本/iOS自动生成Model/iOSModelTemplate.txt"
-outputFilePath="/Users/a002/Desktop/Shell/iOS自动生成Model脚本/iOS自动生成Model"
+inputFilePath="/Users/a002/PrivateRepository/FHHAutoGenerateModel/iOS自动生成Model/iOSModelTemplate.txt"
+outputFilePath="/Users/a002/PrivateRepository/FHHAutoGenerateModel/iOS自动生成Model/"
 inputFileContent=$(cat $inputFilePath)
-properties=""
 projectName="uschool"
 userName="hefanghui"
 createDate=`date +%Y/%m/%d`
 currentYear="`date +%Y`年"
 organization="topglobaledu"
+properties=""
 hFileDefineClassOCCode=""
 mFileImportClassOCCode=""
 propertyType=""
 memoryStragegy=""
 mFileSetUnDefineKeyMethodOCCode=""
-function getCalssNameFromFileContent() {
+mFileYYModelMethodOCCode=""
+mFileMJExtentionMethodOCCode=""
+className=""
+
+function setCalssName() {
 	index=0
 	while read line
 	do
 		index=$[$index+1]	
-		if [[ index=1 ]]; then
+		if [[ $index -eq 2 ]]; then
 			lineContent="$line"
 			OLD_IFS="$IFS"
-			IFS="|"
+			IFS="["
 			array=($lineContent)
 			IFS="$OLD_IFS"
-			replace=""
-			fileCalssName="${array[1]}"
-			echo "$fileCalssName"
+			className="${array[1]}"
+			className=${className/"]"/""}
+			# echo "className:$className"
+			# echo ":$className"
 			break
 		fi
+	done < "$inputFilePath"
+}
+
+function sethFileDefineClassOCCodeWithPropertyTypeIfNeeded() {
+	index=0
+	while read line || [[ -n ${line} ]]
+	do				
+		if [[ $index -gt 1 ]]; then
+			lineContent="$line"
+			OLD_IFS="$IFS"
+			IFS="["
+			array=($lineContent)			
+			propertyContent="${array[1]}"	
+			IFS="|"	
+			propertyContentArray=($propertyContent)
+			propertyType="${propertyContentArray[0]}"
+			IFS="$OLD_IFS"
+			# echo "propertyType:$propertyType"
+			setMemoryStragegyWithPropertyType "$propertyType"
+			sethFileDefineClassOCCodeWithPropertyType "$propertyType"			
+		fi		
+		index=$[$index+1]
 	done < "$inputFilePath"
 }
 
@@ -48,20 +75,66 @@ function setMemoryStragegyWithPropertyType() {
 
 function sethFileDefineClassOCCodeWithPropertyType() {
 	systemStrongMemoryStragegyPropertyTypes="NSArray|NSMutableArray|NSDictionary|NSMutableDictionary|NSSet|NSMutableSet"
-	templateIndex=0
 	if [[ "$memoryStragegy" = "strong" ]]; then
 		if [[ "$systemStrongMemoryStragegyPropertyTypes" =~ "$1" ]]; then
 			echo "$1不需定义为Class"		
 		else		
-			if [[ templateIndex -eq 0 ]]; then
-				hFileDefineClassOCCode="@class $1;"			
+			if [[ "$hFileDefineClassOCCode" = "" ]]; then
+				hFileDefineClassOCCode="@class $1;"		
+				echo "hFileDefineClassOCCode：$hFileDefineClassOCCode"
 			else
 				hFileDefineClassOCCode="$hFileDefineClassOCCode\n@class $1;"	
-			fi				
-			templateIndex=$[$templateIndex+1]
-		fi
+				echo "hFileDefineClassOCCode：$hFileDefineClassOCCode"
+			fi							
+		fi		
 	fi
+	# echo "$1"
+	# echo "hFileDefineClassOCCode：$hFileDefineClassOCCode"
 }
+
+function setProperties() {	
+	index=0
+	while read line || [[ -n ${line} ]]
+	do		
+		if [[ $index -gt 1 ]]; then
+			lineContent="$line"
+			OLD_IFS="$IFS"
+			IFS="["
+			array=($lineContent)			
+			replace=""					
+			array1="${array[1]}"	
+			IFS="|"	
+			array2=($array1)
+			IFS="$OLD_IFS"
+			propertyType="${array2[0]}"
+			# echo "propertyType:$propertyType"
+			# propertyType=$(setMemoryStragegyWithPropertyType "$propertyType")
+			setMemoryStragegyWithPropertyType "$propertyType"
+			# echo "propertyType:$propertyType"	
+			property="${array2[1]}"
+			IFS=":"
+			propertyArray=($property)
+			IFS="$OLD_IFS"
+			propertyName="${propertyArray[0]}"
+			if [[ "$memoryStragegy" = "assign" ]]; then
+				propertyOCCode="@property (nonatomic, $memoryStragegy) $propertyType $propertyName;"
+			else
+				propertyOCCode="@property (nonatomic, $memoryStragegy) $propertyType *$propertyName;"
+			fi						
+			propertyOCCode=${propertyOCCode/"]"/""}
+			properties="$properties\n$propertyOCCode"			
+			lineContent=${lineContent/$propertyPre/$replace}
+			# echo "$lineContent"
+			# echo "$propertyOCCode"
+		fi
+		
+		index=$[$index+1]
+		
+	done < "$inputFilePath"
+	# echo "$properties"
+}
+
+# echo "hFileDefineClassOCCode:$hFileDefineClassOCCode"
 
 function setmFileImportClassOCCodeWithPropertyType() {
 	systemStrongMemoryStragegyPropertyTypes="NSArray|NSMutableArray|NSDictionary|NSMutableDictionary|NSSet|NSMutableSet"
@@ -77,49 +150,30 @@ function setmFileImportClassOCCodeWithPropertyType() {
 			fi				
 			templateIndex=$[$templateIndex+1]
 		fi
+		# echo "$mFileImportClassOCCode"
 	fi
 }
 
-function setPropertiesFromFileContent() {	
+function setmFileImportClassOCCodeWithPropertyTypeIfNeeded() {
 	index=0
 	while read line || [[ -n ${line} ]]
 	do		
-		if [[ $index -ne 0 ]]; then
+		if [[ $index -gt 1 ]]; then
 			lineContent="$line"
 			OLD_IFS="$IFS"
-			IFS="|"
+			IFS="["
 			array=($lineContent)
+			array1="${array[1]}"	
+			IFS="|"	
+			array2=($array1)
 			IFS="$OLD_IFS"
-			replace=""					
-			space=" "
-			replaceStr=""
-			propertyType="${array[1]}"		
-			# echo "propertyType:$propertyType"
-			# propertyType=$(setMemoryStragegyWithPropertyType "$propertyType")
+			propertyType="${array2[0]}"
 			setMemoryStragegyWithPropertyType "$propertyType"
-			sethFileDefineClassOCCodeWithPropertyType "$propertyType"
 			setmFileImportClassOCCodeWithPropertyType "$propertyType"
-			# echo "propertyType:$propertyType"	
-			property="${array[2]}"
-			IFS=":"
-			propertyArray=($property)
-			IFS="$OLD_IFS"
-			propertyName="${propertyArray[0]}"
-			if [[ "$memoryStragegy" = "assign" ]]; then
-				propertyOCCode="@property (nonatomic, $memoryStragegy) $propertyType $propertyName;"
-			else
-				propertyOCCode="@property (nonatomic, $memoryStragegy) $propertyType *$propertyName;"
-			fi			
-			properties="$properties\n$propertyOCCode"
-			lineContent=${lineContent/$propertyPre/$replace}
-			# echo "$lineContent"
-			# echo "$propertyOCCode"
+			# echo "$propertyType"
 		fi
-		
-		index=$[$index+1]
-		
+		index=$[$index+1]		
 	done < "$inputFilePath"
-	# echo "$properties"
 }
 
 function mFileSetUnDefineKeyMethod() {
@@ -130,18 +184,45 @@ function mFileSetUnDefineKeyMethod() {
 	do		
 		if [[ $index -ne 0 ]]; then
 			# echo "$index"
+			# lineContent="$line"
+			# OLD_IFS="$IFS"
+			# IFS="["
+			# array=($lineContent)
+			# array1="${array[1]}"	
+			# IFS="|"		
+			# array2=($array1)
+			# property="${array[2]}"
+			# IFS=":"
+			# propertyArray=($property)
+			# IFS="$OLD_IFS"
+			# propertyName="${propertyArray[0]}"
+			# propertyNameKey="${propertyArray[1]}"
+			# propertyArrayLength=${#propertyArray[@]}
+			# echo "propertyArrayLength:$propertyArrayLength"
 			lineContent="$line"
 			OLD_IFS="$IFS"
-			IFS="|"
+			IFS="["
 			array=($lineContent)			
-			property="${array[2]}"
+			replace=""					
+			array1="${array[1]}"	
+			IFS="|"	
+			array2=($array1)
+			IFS="$OLD_IFS"
+			propertyType="${array2[0]}"
+			# echo "propertyType:$propertyType"
+			# propertyType=$(setMemoryStragegyWithPropertyType "$propertyType")
+			setMemoryStragegyWithPropertyType "$propertyType"
+			# echo "propertyType:$propertyType"	
+			property="${array2[1]}"
 			IFS=":"
 			propertyArray=($property)
 			IFS="$OLD_IFS"
 			propertyName="${propertyArray[0]}"
 			propertyNameKey="${propertyArray[1]}"
+			propertyName=${propertyName/"]"/""}
+			propertyNameKey=${propertyNameKey/"]"/""}
 			propertyArrayLength=${#propertyArray[@]}
-			# echo "propertyArrayLength:$propertyArrayLength"
+			# echo "propertyName:$propertyName"	
 			if [[ propertyArrayLength -gt 1 ]]; then
 				currentMappingOCCode="\tif ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t}"
 				methodBody="$methodBody\n$currentMappingOCCode"	
@@ -157,13 +238,11 @@ function mFileSetUnDefineKeyMethod() {
 
 }
 
-className=$(getCalssNameFromFileContent)
-
-# echo "className:$className"
-
-
+setCalssName ""
+setmFileImportClassOCCodeWithPropertyTypeIfNeeded ""
+setProperties ""
+sethFileDefineClassOCCodeWithPropertyTypeIfNeeded ""
 # echo "$inputFileContent"
-# echo "className:$className"
 
 hFileHeaderAnnotation="//
 //  $className.h
@@ -172,6 +251,8 @@ hFileHeaderAnnotation="//
 //  Created by $userName on $createDate.
 //  Copyright © $currentYear $organization. All rights reserved.
 //"
+
+# echo "className:$className"
 
 mFileHeaderAnnotation="//  ************************************************************************
 //
@@ -187,9 +268,9 @@ mFileHeaderAnnotation="//  *****************************************************
 //
 //  ************************************************************************"
 
-setPropertiesFromFileContent ""
+# setProperties ""
 mFileSetUnDefineKeyMethod ""
-# properties=$(setPropertiesFromFileContent)
+# properties=$(setProperties)
 # mFileSetUnDefineKeyMethodContent=$(mFileSetUnDefineKeyMethod)
 initMethod="- (instancetype)initWithDictionary:(NSDictionary *)dictionary;"
 hFileContent="$hFileHeaderAnnotation\n
@@ -219,6 +300,9 @@ $mFileSetUnDefineKeyMethodOCCode
 @end
 "
 
+
+
+# echo "$mFileImportClassOCCode"
 # echo "$hFileHeaderAnnotation"
 # echo "$mFileHeaderAnnotation"
 # echo "$hFileContent"
@@ -228,6 +312,5 @@ $mFileSetUnDefineKeyMethodOCCode
 # echo "outputFile:$outputFile"
 echo "$hFileContent" > "$outputFilePath/$className.h"
 echo "$mFileContent" > "$outputFilePath/$className.m"
-# setPropertiesFromFileContent ""
-# getCalssNameFromFileContent ""
+# setCalssName ""
 # echo "$mFileHeader"

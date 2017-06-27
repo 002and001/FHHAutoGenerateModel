@@ -3,7 +3,7 @@
 //  Course.m
 //  uschool
 //
-//  Created by hefanghui on 2017/06/21.
+//  Created by hefanghui on 2017/06/27.
 //  Copyright © 2017年 topglobaledu. All rights reserved.
 //
 //  Main function:
