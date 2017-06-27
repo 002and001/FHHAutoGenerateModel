@@ -29,9 +29,7 @@ function setCalssName() {
 			array=($lineContent)
 			IFS="$OLD_IFS"
 			className="${array[1]}"
-			className=${className/"]"/""}
-			# echo "className:$className"
-			# echo ":$className"
+			className=${className/"]"/""}			
 			break
 		fi
 	done < "$inputFilePath"
@@ -51,7 +49,6 @@ function sethFileDefineClassOCCodeWithPropertyTypeIfNeeded() {
 			propertyContentArray=($propertyContent)
 			propertyType="${propertyContentArray[0]}"
 			IFS="$OLD_IFS"
-			# echo "propertyType:$propertyType"
 			setMemoryStragegyWithPropertyType "$propertyType"
 			sethFileDefineClassOCCodeWithPropertyType "$propertyType"			
 		fi		
@@ -69,8 +66,6 @@ function setMemoryStragegyWithPropertyType() {
 	else
 		memoryStragegy="strong"
 	fi
-	# echo "memoryStragegy:$memoryStragegy"
-	# echo "propertyType:$propertyType"
 }
 
 function sethFileDefineClassOCCodeWithPropertyType() {
@@ -81,16 +76,12 @@ function sethFileDefineClassOCCodeWithPropertyType() {
 			echo ""
 		else		
 			if [[ "$hFileDefineClassOCCode" = "" ]]; then
-				hFileDefineClassOCCode="@class $1;"		
-				# echo "hFileDefineClassOCCode：$hFileDefineClassOCCode"
+				hFileDefineClassOCCode="@class $1;"						
 			else
-				hFileDefineClassOCCode="$hFileDefineClassOCCode\n@class $1;"	
-				# echo "hFileDefineClassOCCode：$hFileDefineClassOCCode"
+				hFileDefineClassOCCode="$hFileDefineClassOCCode\n@class $1;"			
 			fi							
 		fi		
 	fi
-	# echo "$1"
-	# echo "hFileDefineClassOCCode：$hFileDefineClassOCCode"
 }
 
 function setProperties() {	
@@ -108,10 +99,7 @@ function setProperties() {
 			array2=($array1)
 			IFS="$OLD_IFS"
 			propertyType="${array2[0]}"
-			# echo "propertyType:$propertyType"
-			# propertyType=$(setMemoryStragegyWithPropertyType "$propertyType")
 			setMemoryStragegyWithPropertyType "$propertyType"
-			# echo "propertyType:$propertyType"	
 			property="${array2[1]}"
 			IFS=":"
 			propertyArray=($property)
@@ -125,17 +113,10 @@ function setProperties() {
 			propertyOCCode=${propertyOCCode/"]"/""}
 			properties="$properties\n$propertyOCCode"			
 			lineContent=${lineContent/$propertyPre/$replace}
-			# echo "$lineContent"
-			# echo "$propertyOCCode"
-		fi
-		
-		index=$[$index+1]
-		
+		fi		
+		index=$[$index+1]		
 	done < "$inputFilePath"
-	# echo "$properties"
 }
-
-# echo "hFileDefineClassOCCode:$hFileDefineClassOCCode"
 
 function setmFileImportClassOCCodeWithPropertyType() {
 	systemStrongMemoryStragegyPropertyTypes="NSArray|NSMutableArray|NSDictionary|NSMutableDictionary|NSSet|NSMutableSet"
@@ -151,7 +132,6 @@ function setmFileImportClassOCCodeWithPropertyType() {
 				mFileImportClassOCCode="$mFileImportClassOCCode\n#import \"$1.h\""	
 			fi				
 		fi
-		# echo "$mFileImportClassOCCode"
 	fi
 }
 
@@ -171,13 +151,12 @@ function setmFileImportClassOCCodeWithPropertyTypeIfNeeded() {
 			propertyType="${array2[0]}"
 			setMemoryStragegyWithPropertyType "$propertyType"
 			setmFileImportClassOCCodeWithPropertyType "$propertyType"
-			# echo "$propertyType"
 		fi
 		index=$[$index+1]		
 	done < "$inputFilePath"
 }
 
-function mFileSetUnDefineKeyMethod() {
+function setmFileSetUnDefineKeyMethod() {
 	lineIndex=0
 	undefinekeyIndex=0
 	methodBody=""
@@ -189,17 +168,13 @@ function mFileSetUnDefineKeyMethod() {
 			lineContent="$line"
 			OLD_IFS="$IFS"
 			IFS="["
-			array=($lineContent)			
-			replace=""					
+			array=($lineContent)							
 			array1="${array[1]}"	
 			IFS="|"	
 			array2=($array1)
 			IFS="$OLD_IFS"
-			propertyType="${array2[0]}"
-			# echo "propertyType:$propertyType"
-			# propertyType=$(setMemoryStragegyWithPropertyType "$propertyType")
+			propertyType="${array2[0]}"		
 			setMemoryStragegyWithPropertyType "$propertyType"
-			# echo "propertyType:$propertyType"	
 			property="${array2[1]}"
 			IFS=":"
 			propertyArray=($property)
@@ -209,7 +184,6 @@ function mFileSetUnDefineKeyMethod() {
 			propertyName=${propertyName/"]"/""}
 			propertyNameKey=${propertyNameKey/"]"/""}
 			propertyArrayLength=${#propertyArray[@]}
-			# echo "propertyName:$propertyName"	
 			if [[ $propertyArrayLength -gt 1 ]]; then
 				if [[ $undefinekeyIndex -eq 0 ]]; then
 					currentMappingOCCode="\tif ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t}"	
@@ -221,22 +195,17 @@ function mFileSetUnDefineKeyMethod() {
 							
 				undefinekeyIndex=$[$undefinekeyIndex+1]
 			fi
-			
-			# echo "propertyNameKey:$propertyNameKey"			
 		fi
 		lineIndex=$[$lineIndex+1]	
 	done < "$inputFilePath"
 	mFileSetUnDefineKeyMethodOCCode="- (void)setValue:(id)value forUndefinedKey:(NSString *)key {	$methodBody\n}"
-	# echo "$methodBody"
-	# echo "$method"
-
 }
 
 setCalssName ""
 setmFileImportClassOCCodeWithPropertyTypeIfNeeded ""
 setProperties ""
 sethFileDefineClassOCCodeWithPropertyTypeIfNeeded ""
-# echo "$inputFileContent"
+setmFileSetUnDefineKeyMethod ""
 
 hFileHeaderAnnotation="//
 //  $className.h
@@ -245,8 +214,6 @@ hFileHeaderAnnotation="//
 //  Created by $userName on $createDate.
 //  Copyright © $currentYear $organization. All rights reserved.
 //"
-
-# echo "className:$className"
 
 mFileHeaderAnnotation="//  ************************************************************************
 //
@@ -262,10 +229,6 @@ mFileHeaderAnnotation="//  *****************************************************
 //
 //  ************************************************************************"
 
-# setProperties ""
-mFileSetUnDefineKeyMethod ""
-# properties=$(setProperties)
-# mFileSetUnDefineKeyMethodContent=$(mFileSetUnDefineKeyMethod)
 initMethod="- (instancetype)initWithDictionary:(NSDictionary *)dictionary;"
 hFileContent="$hFileHeaderAnnotation\n
 #import <Foundation/Foundation.h>
@@ -276,7 +239,6 @@ $properties
 $initMethod\n
 @end
 "
-# echo "$mFileImportClassOCCode"
 
 mFileContent="$mFileHeaderAnnotation\n
 #import \"$className.h\"
@@ -295,14 +257,5 @@ $mFileSetUnDefineKeyMethodOCCode
 @end
 "
 
-# echo "$mFileImportClassOCCode"
-# echo "$hFileHeaderAnnotation"
-# echo "$mFileHeaderAnnotation"
-# echo "$hFileContent"
-# echo "$mFileContent"
-# mFileSetUnDefineKeyMethod ""
-# outputFile="$outputFilePath/className.h"
-# echo "outputFile:$outputFile"
 echo "$hFileContent" > "$outputFilePath/$className.h"
 echo "$mFileContent" > "$outputFilePath/$className.m"
-# echo "$mFileHeader"
