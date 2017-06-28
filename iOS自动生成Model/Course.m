@@ -46,5 +46,16 @@
 				 @"grade" : [Grade class]};
 }
 
++ (NSDictionary *)replacedKeyFromPropertyName {
+    return @{@"courseID" : @"course_id",
+			 @"courseState" : @"state",
+			 @"courseName" : @"course_name"};
+}
+
++ (NSDictionary *)objectClassInArray {
+    	return @{@"teachingSubject" : [TeachingSubject class],
+				 @"grade" : [Grade class]};
+}
+
 @end
 
