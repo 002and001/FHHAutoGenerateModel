@@ -3,7 +3,7 @@
 //  Course.m
 //  uschool
 //
-//  Created by hefanghui on 2017/06/27.
+//  Created by hefanghui on 2017/06/28.
 //  Copyright © 2017年 topglobaledu. All rights reserved.
 //
 //  Main function:
@@ -34,10 +34,16 @@
 		_courseName = value;
 	}
 }
+
 + (NSDictionary *)modelCustomPropertyMapper {
     return @{@"courseID" : @"course_id",
 			 @"courseState" : @"state",
 			 @"courseName" : @"course_name"};
+}
+
++ (NSDictionary *)modelContainerPropertyGenericClass {
+    	return @{@"teachingSubject" : [TeachingSubject class],
+				 @"grade" : [Grade class]};
 }
 
 @end

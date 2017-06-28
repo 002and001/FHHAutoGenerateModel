@@ -15,7 +15,8 @@ mFileImportClassOCCode=""
 propertyType=""
 memoryStragegy=""
 mFileSetUnDefineKeyMethodOCCode=""
-mFileYYModelMethodOCCode=""
+mFileModelCustomPropertyMapperOCCode=""
+mFilemodelContainerPropertyGenericClassOCCode=""
 mFileMJExtentionMethodOCCode=""
 
 
@@ -182,6 +183,8 @@ function setmFileMappingKeyMethodsIfNeeded() {
 	undefinekeyIndex=0
 	systemUndefineKeyMethodBody=""
 	yyModelMappingKeyMethodBody=""
+	yyModelGenericClassBody=""
+
 	method=""
 
 	while read line || [[ -n ${line} ]]
@@ -206,27 +209,33 @@ function setmFileMappingKeyMethodsIfNeeded() {
 			propertyNameKey="${propertyArray[1]}"
 			propertyName=${propertyName/"]"/""}
 			propertyNameKey=${propertyNameKey/"]"/""}
-			propertyArrayLength=${#propertyArray[@]}
+			propertyArrayLength=${#propertyArray[@]}	
 			# echo "propertyName:$propertyName"
 			if [[ $propertyArrayLength -gt 1 ]]; then
 				setmFileSetUnDefineKeyMethodIfNeeded "$propertyNameKey" "$propertyName"
 				setmFileYYModelMappingMethodIfNeeded "$propertyNameKey" "$propertyName"
 				undefinekeyIndex=$[$undefinekeyIndex+1]
 			fi
+			setmFileYYModelGenericClassBMethodIfNeeded "$propertyNameKey" "$propertyName" "$propertyArrayLength"
 		fi
 		lineIndex=$[$lineIndex+1]	
 	done < "$inputFilePath"
 	yyModelMappingKeyMethodBodyLength=${#yyModelMappingKeyMethodBody}
 	yyModelMappingKeyMethodBody=${yyModelMappingKeyMethodBody:0:yyModelMappingKeyMethodBodyLength-1}
+	yyModelGenericClassBodyLength=${#yyModelGenericClassBody}
+	yyModelGenericClassBody=${yyModelGenericClassBody:0:yyModelGenericClassBodyLength-1}
 	# echo "systemUndefineKeyMethodBody:$systemUndefineKeyMethodBody"
 	# echo "yyModelMappingKeyMethodBody:$yyModelMappingKeyMethodBody"
 	
 	# echo "$yyModelMappingKeyMethodBodyLength"
 	
 	mFileSetUnDefineKeyMethodOCCode="- (void)setValue:(id)value forUndefinedKey:(NSString *)key {	$systemUndefineKeyMethodBody\n}"
-	mFileYYModelMethodOCCode="+ (NSDictionary *)modelCustomPropertyMapper {
+	mFileModelCustomPropertyMapperOCCode="+ (NSDictionary *)modelCustomPropertyMapper {
     return @{$yyModelMappingKeyMethodBody};\n}"
-    echo "mFileYYModelMethodOCCode:$mFileYYModelMethodOCCode"
+    mFilemodelContainerPropertyGenericClassOCCode="+ (NSDictionary *)modelContainerPropertyGenericClass {
+    	return @{$yyModelGenericClassBody};\n}"
+    # echo "mFileModelCustomPropertyMapperOCCode:$mFileModelCustomPropertyMapperOCCode"
+    echo "mFilemodelContainerPropertyGenericClassOCCode:$mFilemodelContainerPropertyGenericClassOCCode"
 }
 
 function setmFileSetUnDefineKeyMethodIfNeeded() {		
@@ -252,11 +261,33 @@ function setmFileYYModelMappingMethodIfNeeded() {
 		# else
 		# 	currentMappingOCCode="@\"$propertyName\" : @\"$propertyNameKey\""
 		# fi	
-		currentMappingOCCode="@\"$propertyName\" : @\"$propertyNameKey\","
+		# echo "$memoryStragegy"
+		currentMappingOCCode="@\"$propertyName\" : @\"$propertyNameKey\","				
 		if [[ "$yyModelMappingKeyMethodBody" = "" ]]; then
 			yyModelMappingKeyMethodBody="$currentMappingOCCode"	
 		else
 			yyModelMappingKeyMethodBody="$yyModelMappingKeyMethodBody\n\t\t\t $currentMappingOCCode"
+		fi
+	fi
+}
+
+function setmFileYYModelGenericClassBMethodIfNeeded() {
+	if [[ "$configurationContent" =~ "YYModel" ]]; then
+		propertyNameKey="$1"
+		propertyName="$2"
+		propertyArrayLength="$3"
+		systemStrongMemoryStragegyPropertyTypes="NSArray|NSMutableArray|NSDictionary|NSMutableDictionary|NSSet|NSMutableSet"
+		if [[ "$memoryStragegy" = "strong" ]]; then
+			if [[ "$systemStrongMemoryStragegyPropertyTypes" =~ "$propertyType"  ]]; then
+				currentGenericClass=""
+			else
+				currentGenericClass="@\"$propertyName\" : [$propertyType class],"
+				if [[ "$yyModelGenericClassBody" = "" ]]; then
+					yyModelGenericClassBody="$currentGenericClass"
+				else
+					yyModelGenericClassBody="$yyModelGenericClassBody\n\t\t\t\t $currentGenericClass"
+				fi				
+			fi
 		fi
 	fi
 }
@@ -315,7 +346,10 @@ $mFileImportClassOCCode\n
 }
 
 $mFileSetUnDefineKeyMethodOCCode
-$mFileYYModelMethodOCCode
+
+$mFileModelCustomPropertyMapperOCCode
+
+$mFilemodelContainerPropertyGenericClassOCCode
 
 @end
 "
