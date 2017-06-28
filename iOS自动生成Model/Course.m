@@ -28,22 +28,16 @@
 - (void)setValue:(id)value forUndefinedKey:(NSString *)key {	
 	if ([key isEqualToString:@"course_id"]) {
 		_courseID = value;
-	} else if ([key isEqualToString:@"state"]) {
-		_courseState = value;
-	} else if ([key isEqualToString:@"course_name"]) {
-		_courseName = value;
+		return;
 	}
-}
-
-+ (NSDictionary *)modelCustomPropertyMapper {
-    return @{@"courseID" : @"course_id",
-			 @"courseState" : @"state",
-			 @"courseName" : @"course_name"};
-}
-
-+ (NSDictionary *)modelContainerPropertyGenericClass {
-    	return @{@"teachingSubject" : [TeachingSubject class],
-				 @"grade" : [Grade class]};
+	if ([key isEqualToString:@"state"]) {
+		_courseState = value;
+		return;
+	}
+	if ([key isEqualToString:@"course_name"]) {
+		_courseName = value;
+		return;
+	}
 }
 
 + (NSDictionary *)replacedKeyFromPropertyName {

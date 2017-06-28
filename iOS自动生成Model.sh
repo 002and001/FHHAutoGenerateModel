@@ -14,6 +14,7 @@ hFileDefineClassOCCode=""
 mFileImportClassOCCode=""
 propertyType=""
 memoryStragegy=""
+mFileMappingMethod=""
 mFileSetUnDefineKeyMethodOCCode=""
 mFileModelCustomPropertyMapperOCCode=""
 mFilemodelContainerPropertyGenericClassOCCode=""
@@ -36,7 +37,6 @@ function setConfigurationContent() {
 		fi
 		index=$[$index+1]
 	done < "$inputFilePath"
-	# echo "configurationContent:$configurationContent"
 }
 
 function setCalssName() {
@@ -224,45 +224,49 @@ function setmFileMappingKeyMethodsIfNeeded() {
 		fi
 		lineIndex=$[$lineIndex+1]	
 	done < "$inputFilePath"
-	yyModelMappingKeyMethodBodyLength=${#yyModelMappingKeyMethodBody}
-	yyModelMappingKeyMethodBody=${yyModelMappingKeyMethodBody:0:yyModelMappingKeyMethodBodyLength-1}
-	yyModelGenericClassBodyLength=${#yyModelGenericClassBody}
-	yyModelGenericClassBody=${yyModelGenericClassBody:0:yyModelGenericClassBodyLength-1}
-	mJExtentionMappingKeyMethodBodyLength=${#mJExtentionMappingKeyMethodBody}
-	mJExtentionMappingKeyMethodBody=${mJExtentionMappingKeyMethodBody:0:mJExtentionMappingKeyMethodBodyLength-1}
-	mJExtentionGenericClassBodyLength=${#mJExtentionGenericClassBody}
-	mJExtentionGenericClassBody=${mJExtentionGenericClassBody:0:mJExtentionGenericClassBodyLength-1}
-	# echo "systemUndefineKeyMethodBody:$systemUndefineKeyMethodBody"
-	# echo "yyModelMappingKeyMethodBody:$yyModelMappingKeyMethodBody"
-	
-	# echo "$yyModelMappingKeyMethodBodyLength"
-	
+
 	mFileSetUnDefineKeyMethodOCCode="- (void)setValue:(id)value forUndefinedKey:(NSString *)key {	$systemUndefineKeyMethodBody\n}"
-	mFileModelCustomPropertyMapperOCCode="+ (NSDictionary *)modelCustomPropertyMapper {
+	mFileMappingMethod="$mFileSetUnDefineKeyMethodOCCode\n"
+
+	if [[ "$yyModelMappingKeyMethodBody" != "" ]]; then
+		yyModelMappingKeyMethodBodyLength=${#yyModelMappingKeyMethodBody}
+		yyModelMappingKeyMethodBody=${yyModelMappingKeyMethodBody:0:yyModelMappingKeyMethodBodyLength-1}
+		mFileModelCustomPropertyMapperOCCode="+ (NSDictionary *)modelCustomPropertyMapper {
     return @{$yyModelMappingKeyMethodBody};\n}"
-    mFilemodelContainerPropertyGenericClassOCCode="+ (NSDictionary *)modelContainerPropertyGenericClass {
-    	return @{$yyModelGenericClassBody};\n}"
-	mFileMJReplacedKeyFromPropertyNameOCCode="+ (NSDictionary *)replacedKeyFromPropertyName {
+    	mFileMappingMethod="$mFileMappingMethod\n$mFileModelCustomPropertyMapperOCCode\n"
+	fi
+
+	if [[ "$yyModelGenericClassBody" != "" ]]; then
+		yyModelGenericClassBodyLength=${#yyModelGenericClassBody}
+		yyModelGenericClassBody=${yyModelGenericClassBody:0:yyModelGenericClassBodyLength-1}
+		mFilemodelContainerPropertyGenericClassOCCode="+ (NSDictionary *)modelContainerPropertyGenericClass {
+    	return @{$yyModelGenericClassBody};\n}"	
+    	mFileMappingMethod="$mFileMappingMethod\n$mFilemodelContainerPropertyGenericClassOCCode\n"
+	fi
+	
+	if [[ "$mJExtentionMappingKeyMethodBody" != "" ]]; then
+		mJExtentionMappingKeyMethodBodyLength=${#mJExtentionMappingKeyMethodBody}
+		mJExtentionMappingKeyMethodBody=${mJExtentionMappingKeyMethodBody:0:mJExtentionMappingKeyMethodBodyLength-1}
+		mFileMJReplacedKeyFromPropertyNameOCCode="+ (NSDictionary *)replacedKeyFromPropertyName {
     return @{$mJExtentionMappingKeyMethodBody};\n}"
-    mFileMJObjectClassInArrayOCCode="+ (NSDictionary *)objectClassInArray {
+    	mFileMappingMethod="$mFileMappingMethod\n$mFileMJReplacedKeyFromPropertyNameOCCode\n"
+	fi
+
+	if [[ "$mJExtentionGenericClassBody" != "" ]]; then
+		mJExtentionGenericClassBodyLength=${#mJExtentionGenericClassBody}
+		mJExtentionGenericClassBody=${mJExtentionGenericClassBody:0:mJExtentionGenericClassBodyLength-1}
+		mFileMJObjectClassInArrayOCCode="+ (NSDictionary *)objectClassInArray {
     	return @{$mJExtentionGenericClassBody};\n}"
-    # echo "mFileModelCustomPropertyMapperOCCode:$mFileModelCustomPropertyMapperOCCode"
-    # echo "mFilemodelContainerPropertyGenericClassOCCode:$mFilemodelContainerPropertyGenericClassOCCode"
-    # echo "mFileMJReplacedKeyFromPropertyNameOCCode:$mFileMJReplacedKeyFromPropertyNameOCCode"
-    # echo "mJExtentionMappingKeyMethodBody:$mJExtentionMappingKeyMethodBody"
+    	mFileMappingMethod="$mFileMappingMethod\n$mFileMJObjectClassInArrayOCCode\n"
+	fi		
 }
 
 function setmFileSetUnDefineKeyMethodIfNeeded() {		
 	if [[ "$configurationContent" =~ "System" ]]; then
 		propertyNameKey="$1"
 		propertyName="$2"
-		if [[ $systemUndefineKeyMethodBody = "" ]]; then
-			currentMappingOCCode="\tif ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t}"	
-			systemUndefineKeyMethodBody="$systemUndefineKeyMethodBody\n$currentMappingOCCode"					
-		else
-			currentMappingOCCode=" else if ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t}"
-			systemUndefineKeyMethodBody="$systemUndefineKeyMethodBody$currentMappingOCCode"
-		fi	
+		currentMappingOCCode="\tif ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t\treturn;\n\t}"	
+		systemUndefineKeyMethodBody="$systemUndefineKeyMethodBody\n$currentMappingOCCode"	
 	fi		
 }
 
@@ -387,16 +391,7 @@ $mFileImportClassOCCode\n
     return self;	
 }
 
-$mFileSetUnDefineKeyMethodOCCode
-
-$mFileModelCustomPropertyMapperOCCode
-
-$mFilemodelContainerPropertyGenericClassOCCode
-
-$mFileMJReplacedKeyFromPropertyNameOCCode
-
-$mFileMJObjectClassInArrayOCCode
-
+$mFileMappingMethod
 @end
 "
 
