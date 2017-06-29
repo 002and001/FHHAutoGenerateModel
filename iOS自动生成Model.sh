@@ -225,15 +225,22 @@ function setmFileMappingKeyMethodsIfNeeded() {
 		lineIndex=$[$lineIndex+1]	
 	done < "$inputFilePath"
 
-	mFileSetUnDefineKeyMethodOCCode="- (void)setValue:(id)value forUndefinedKey:(NSString *)key {	$systemUndefineKeyMethodBody\n}"
-	mFileMappingMethod="$mFileSetUnDefineKeyMethodOCCode\n"
-
+	lineReturn=""
+	if [[ "$configurationContent" =~ "System" ]]; then
+		if [[ "$systemUndefineKeyMethodBody" = "" ]]; then
+			systemUndefineKeyMethodBody="\n\t// do nothing"
+		fi
+		mFileSetUnDefineKeyMethodOCCode="- (void)setValue:(id)value forUndefinedKey:(NSString *)key {$systemUndefineKeyMethodBody\n}"
+		mFileMappingMethod="$mFileSetUnDefineKeyMethodOCCode\n"
+		lineReturn="\n"
+	fi
+	
 	if [[ "$yyModelMappingKeyMethodBody" != "" ]]; then
 		yyModelMappingKeyMethodBodyLength=${#yyModelMappingKeyMethodBody}
 		yyModelMappingKeyMethodBody=${yyModelMappingKeyMethodBody:0:yyModelMappingKeyMethodBodyLength-1}
 		mFileModelCustomPropertyMapperOCCode="+ (NSDictionary *)modelCustomPropertyMapper {
     return @{$yyModelMappingKeyMethodBody};\n}"
-    	mFileMappingMethod="$mFileMappingMethod\n$mFileModelCustomPropertyMapperOCCode\n"
+    	mFileMappingMethod="$mFileMappingMethod$lineReturn$mFileModelCustomPropertyMapperOCCode\n"	
 	fi
 
 	if [[ "$yyModelGenericClassBody" != "" ]]; then
@@ -249,7 +256,7 @@ function setmFileMappingKeyMethodsIfNeeded() {
 		mJExtentionMappingKeyMethodBody=${mJExtentionMappingKeyMethodBody:0:mJExtentionMappingKeyMethodBodyLength-1}
 		mFileMJReplacedKeyFromPropertyNameOCCode="+ (NSDictionary *)replacedKeyFromPropertyName {
     return @{$mJExtentionMappingKeyMethodBody};\n}"
-    	mFileMappingMethod="$mFileMappingMethod\n$mFileMJReplacedKeyFromPropertyNameOCCode\n"
+    	mFileMappingMethod="$mFileMappingMethod$lineReturn$mFileMJReplacedKeyFromPropertyNameOCCode\n"
 	fi
 
 	if [[ "$mJExtentionGenericClassBody" != "" ]]; then
@@ -265,12 +272,12 @@ function setmFileSetUnDefineKeyMethodIfNeeded() {
 	if [[ "$configurationContent" =~ "System" ]]; then
 		propertyNameKey="$1"
 		propertyName="$2"
-		currentMappingOCCode="\tif ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t\treturn;\n\t}"	
-		systemUndefineKeyMethodBody="$systemUndefineKeyMethodBody\n$currentMappingOCCode"	
+		currentMappingOCCode="\tif ([key isEqualToString:@\"$propertyNameKey\"]) {\n\t\t_$propertyName = value;\n\t\treturn;\n\t}"
+		systemUndefineKeyMethodBody="$systemUndefineKeyMethodBody\n$currentMappingOCCode"		
 	fi		
 }
 
-function setmFileYYModelMappingMethodIfNeeded() {	
+function setmFileYYModelMappingMethodIfNeeded() {
 	if [[ "$configurationContent" =~ "YYModel" ]]; then
 		propertyNameKey="$1"
 		propertyName="$2"
@@ -368,29 +375,42 @@ mFileHeaderAnnotation="//  *****************************************************
 //
 //  ************************************************************************"
 
-initMethod="- (instancetype)initWithDictionary:(NSDictionary *)dictionary;"
+initMethodInterface=""
+if [[ "$configurationContent" =~ "System" ]]; then
+	initMethodInterface="\n- (instancetype)initWithDictionary:(NSDictionary *)dictionary;\n"	
+fi
+
 hFileContent="$hFileHeaderAnnotation\n
 #import <Foundation/Foundation.h>
 $hFileDefineClassOCCode\n
 @interface $className : NSObject
 $properties
-
-$initMethod\n
+$initMethodInterface
 @end
 "
+
+initMethodImplement=""
+if [[ "$configurationContent" =~ "System" ]]; then
+	initMethodImplement="\n- (instancetype)initWithDictionary:(NSDictionary *)dictionary {
+	if (self = [super init]) {
+        [self setValuesForKeysWithDictionary:dictionary];
+    }
+    return self;	
+}\n"	
+fi
+
+if [[ "$configurationContent" =~ "MJExtention" ]]; then
+	mFileImportClassOCCode="#import \"MJExtension.h\"\n$mFileImportClassOCCode"	
+fi
+if [[ "$configurationContent" =~ "YYModel" ]]; then
+	mFileImportClassOCCode="#import \"NSObject+YYModel.h\"\n$mFileImportClassOCCode"	
+fi
 
 mFileContent="$mFileHeaderAnnotation\n
 #import \"$className.h\"
 $mFileImportClassOCCode\n
 @implementation $className
-
-- (instancetype)initWithDictionary:(NSDictionary *)dictionary {
-	if (self = [super init]) {
-        [self setValuesForKeysWithDictionary:dictionary];
-    }
-    return self;	
-}
-
+$initMethodImplement
 $mFileMappingMethod
 @end
 "

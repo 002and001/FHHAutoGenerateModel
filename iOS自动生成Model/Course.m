@@ -3,7 +3,7 @@
 //  Course.m
 //  uschool
 //
-//  Created by hefanghui on 2017/06/28.
+//  Created by hefanghui on 2017/06/29.
 //  Copyright © 2017年 topglobaledu. All rights reserved.
 //
 //  Main function:
@@ -13,6 +13,8 @@
 //  ************************************************************************
 
 #import "Course.h"
+#import "NSObject+YYModel.h"
+#import "MJExtension.h"
 #import "TeachingSubject.h"
 #import "Grade.h"
 
@@ -25,7 +27,7 @@
     return self;	
 }
 
-- (void)setValue:(id)value forUndefinedKey:(NSString *)key {	
+- (void)setValue:(id)value forUndefinedKey:(NSString *)key {
 	if ([key isEqualToString:@"course_id"]) {
 		_courseID = value;
 		return;
@@ -38,6 +40,17 @@
 		_courseName = value;
 		return;
 	}
+}
+
++ (NSDictionary *)modelCustomPropertyMapper {
+    return @{@"courseID" : @"course_id",
+			 @"courseState" : @"state",
+			 @"courseName" : @"course_name"};
+}
+
++ (NSDictionary *)modelContainerPropertyGenericClass {
+    	return @{@"teachingSubject" : [TeachingSubject class],
+				 @"grade" : [Grade class]};
 }
 
 + (NSDictionary *)replacedKeyFromPropertyName {
