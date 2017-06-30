@@ -377,7 +377,10 @@ mFileHeaderAnnotation="//  *****************************************************
 
 initMethodInterface=""
 if [[ "$configurationContent" =~ "System" ]]; then
-	initMethodInterface="\n- (instancetype)initWithDictionary:(NSDictionary *)dictionary;\n"	
+	initMethodInterface="\n- (instancetype)initWithDictionary:(NSDictionary *)dictionary;\n"
+	if [[ "$configurationContent" =~ "ModelArray" ]]; then
+		initMethodInterface="$initMethodInterface\n+ (NSArray *)arrayWithDictionaryArray:(NSArray *)dictionaryArray;\n"
+	fi
 fi
 
 hFileContent="$hFileHeaderAnnotation\n
@@ -397,6 +400,16 @@ if [[ "$configurationContent" =~ "System" ]]; then
     }
     return self;	
 }\n"	
+	if [[ "$configurationContent" =~ "ModelArray" ]]; then
+		initMethodImplement="$initMethodImplement\n+ (NSArray *)arrayWithDictionaryArray:(NSArray *)dictionaryArray {
+	NSMutableArray *arrayM = [NSMutableArray NSMutableArray arrayWithCapacity:dictionaryArray.count];
+	for (NSDictionary *dictionary in dictionaryArray) {
+        $className *model = [[$className alloc] initWithDictionary:dictionary];
+        [arrayM addObject:model];
+    }
+  	return [arrayM copy];
+}\n"
+	fi
 fi
 
 if [[ "$configurationContent" =~ "MJExtention" ]]; then
